@@ -123,9 +123,6 @@ fw <- f_cali$weight
 mw <- as.numeric(mw)
 fw <- as.numeric(fw)
 
-mw
-fw
-
 lizard_t_test <- var.test(mw,fw)
 lizard_t_test
 
