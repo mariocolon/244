@@ -1,0 +1,176 @@
+---
+title: "Lab 6 - Time Series Exploration and Forecasting"
+author: "Mario Colon"
+date: "February 22, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+##1. Get Packages
+
+```{r}
+
+
+library(tidyverse)
+library(forecast)
+library(tseries)
+
+```
+
+##2. Load Date
+
+```{r}
+
+energy <- read_csv("energy.csv")
+class(energy)
+
+```
+ 
+##3. Convert to 'ts' data
+
+```{r}
+
+res_ts <- ts(energy$res_total, frequency = 12, start = c(1973,1)) #frequency = 12 means months/year
+#res_ts
+class(res_ts) #should be ts data
+
+```
+
+Simple Plot :
+
+```{r}
+
+plot(res_ts)
+
+```
+
+## Decompose the ts data
+
+decompose() function 
+
+```{r}
+
+res_dc <- decompose(res_ts)
+plot(res_dc)
+
+```
+
+##5. Other fast, cool ways to explore you ts data
+
+monthplot() - plots subseries from time series 
+
+```{r}
+
+monthplot(res_ts)
+
+```
+
+```{r}
+
+ggseasonplot(res_ts) +
+  theme_bw()
+
+```
+
+##6. Simple moving average (smoothing)
+
+Use the'ma' functionin forecast package
+
+```{r}
+
+sma_res <- ma(res_ts, order = 12) #calculates moving average
+plot(res_ts)
+lines(sma_res, col = "red")
+
+```
+
+##7. Explore autocorrelation (ACT)
+
+Good way to explore seasonality 
+
+1. Basic way (using acf)
+2. gg way (using ggtsdisplay)
+
+```{r}
+#basic
+
+acf(res_ts)
+
+#gg way
+
+ggtsdisplay(res_ts)
+
+```
+
+##Augmented Dickey - Fuller Test for Stationarity 
+
+Null Hypothesis: data are NOT stationary 
+Alternative Hypothesis: data ARE stationary 
+
+If p < 0.05 (assuming a significance level of alpha = 0.05), I would retain the alternative hypothesis that the data ARE stationary 
+
+```{r}
+
+adf_res <- adf.test(res_ts) #based in outcome (p < 0.01, retain the alternative that the data ARE stationary)
+adf_res
+
+```
+
+##9. Holt Winters Exponential Smoothing
+
+```{r}
+
+res_hw <- HoltWinters(res_ts) 
+plot(res_hw)
+
+res_forecast <- forecast(res_hw, h = 120) #120 means 120 months 
+plot(res_forecast)
+
+hist(res_forecast$residuals)
+
+```
+
+##10. ARIMA using auto.arima() function 
+
+```{r}
+
+res_pdq <- auto.arima(res_ts)
+
+res_pdq
+
+```
+
+Nonseasonal/seasonal PDQ: (1,0,2)(0,1,1)
+
+```{r}
+
+res_arima <- arima(res_ts, order = c(1,0,2), seasonal = list(order = c(0,1,1)))
+
+```
+
+Evaluate residuals
+
+```{r}
+
+par(mfrow = c(1,2))
+hist(res_arima$residuals)
+qqnorm(res_arima$residuals)
+
+```
+
+```{r}
+
+forecast_res <- forecast(res_arima, h = 60)
+plot(forecast_res)
+
+#if I want to conver the information to adata frame (eg. for ggplotting), then I can do that by : 
+
+res_df <- data.frame(forecast_res)
+
+
+```
+

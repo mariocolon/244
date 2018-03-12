@@ -1,0 +1,156 @@
+---
+title: "Lab_7_Variograms & Kriging"
+author: "Mario Colon"
+date: "March 1, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+1. Packages
+
+```{r}
+
+library(tidyverse)
+library(sf)
+library(sp)
+library(gstat)
+library(rgdal)
+library(tmap)
+
+```
+
+2. Get Data
+
+```{r}
+
+lat_lon <- read_csv("lat_lon.csv")
+fire_pm25 <- read_csv("fire_pm25.csv")
+counties <- st_read(dsn = ".", layer = "california_county_shape_file")
+
+```
+
+3. Combine PM2.5 attribute date with the latitude/longitude information 
+
+```{r}
+
+df <- full_join(lat_lon, fire_pm25) 
+
+df <- df %>% 
+  filter(name != "NA")
+
+```
+
+4. Convert to simple features spatial data, and we're going to set the CRS
+
+```{r}
+
+df_sf <- st_as_sf(df, coords = c("latitude", "longitude")) #creates a new "geometry" column which merges the lat/long into one
+
+st_crs(df_sf) <- 4326 #standard reference for map projection (1984)
+
+st_crs(counties) <- 4326 #double check counties are projected to same map 
+
+ 
+```
+
+5. Filter the data to only retain air quality observations from 12/10/17
+
+```{r}
+
+pm_12_10 <- df_sf %>% 
+  filter(summary_date == "12/10/17") %>% 
+  select(pm25_davg)
+```
+
+6. Make a point plot using ggplot with geom_sf
+
+```{r}
+
+#plot(pm_12_10)
+#plot(counties)
+
+ggplot(pm_12_10) +
+  geom_sf(data = counties) +
+  geom_sf(aes(color = pm25_davg))
+
+```
+
+7. Create a simplified data frame, set coordiantes, and CRS
+
+```{r}
+
+df2 <- df %>% 
+  filter(summary_date == "12/10/17") %>% 
+  select(longitude, latitude, pm25_davg) 
+
+coordinates(df2) <- ~ latitude + longitude
+proj4string(df2) <- CRS("+init=epsg:4326")
+
+bubble(df2, "pm25_davg")
+
+```
+
+8. Create a variogram, and fit a variogram model
+
+```{r}
+
+
+pm_vg <- variogram(pm25_davg ~ 1, df2)
+
+plot(pm_vg)
+
+#nugget: 100
+#range: 300
+#sill: 450
+
+vg_fit <- fit.variogram(pm_vg, vgm(c("Exp", "Sph", "Gau")))
+plot(pm_vg, vg_fit)
+
+```
+9. New grid of pixels is over which we want to interpolate 
+
+```{r}
+
+Long <- seq(-125, -114, length = 100)
+Lat <- seq(32, 42, length = 100)
+
+Grid <- expand.grid(Long, Lat)
+
+colnames(Grid) <- c("Long", "Lat")
+
+coordinates(Grid) <- ~ Long + Lat
+gridded(Grid) = TRUE
+proj4string(Grid) <- CRS("+init=epsg:4326")
+
+plot(Grid)
+
+```
+
+10. Kriging
+
+```{r}
+
+pm_krige <- krige(pm25_davg ~1, df2, newdata = Grid, model = vg_fit)
+
+
+```
+
+11. Visualize the results
+
+```{r}
+
+krige_df <- data.frame(Grid$Long, Grid$Lat, pm_krige$var1.pred)
+colnames(krige_df) <- c("Long", "Lat", "Predicted")
+
+krige_gg <- ggplot() + 
+  geom_tile(data = krige_df, aes(x = Long, y = Lat, fill = Predicted)) +
+  geom_sf(data = counties, fill = "NA", color = "white")
+
+krige_gg
+
+```
+

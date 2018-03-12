@@ -1,0 +1,187 @@
+---
+title: "244_Assignment3_COLON"
+author: "Mario Colon"
+date: "March 2, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load Packages
+
+```{r}
+
+library(tidyverse)
+library(forecast)
+library(tseries)
+library(sf)
+library(tmap)
+library(maps)
+
+```
+
+
+#Task 2: Reading and Short Answer
+
+#Task 3: Truckee River Flows (2000 – 2016)
+
+```{r}
+
+truckee <- read_csv("truckee_flow.csv")
+
+truck_ts <- ts(truckee$mean_va, frequency = 12, start = c(2000,1)) #frequency = 12 means months/year
+truck_ts
+class(truck_ts)
+plot(truck_ts)
+d_truckee <- decompose(truck_ts)
+plot(d_truckee)
+
+#ARIMA
+
+adf_truckee <- adf.test(truck_ts)
+adf_truckee
+
+#based in outcome (p < 0.01) retain the alternative that the data ARE stationary
+
+#Holt-Winters
+
+hw_truckee <- HoltWinters(truck_ts) 
+plot(hw_truckee)
+
+
+forecast_truckee <- forecast(hw_truckee, h = 60) 
+plot(forecast_truckee)
+
+hist(forecast_truckee$residuals)
+
+```
+Figure 1. [ ]
+
+
+#Task 4. Mapping California’s National Parks
+
+```{r}
+
+counties <- st_read(dsn = ".", layer = "california_county_shape_file")
+nps <- st_read(dsn = ".", layer = "nps_boundary")
+
+CA_nps <- nps %>% 
+  select(STATE, UNIT_TYPE) %>% 
+  filter(STATE == "CA") %>% 
+  filter(UNIT_TYPE == "National Park")
+
+
+st_crs(counties) <- 4326 #standard reference for map projection (1984)
+
+st_transform(CA_nps, crs = 4326) #transform CA_nps to match counties 
+
+
+CA_NPS_Buffer <-CA_nps %>%
+ st_buffer(.01)
+
+ggplot(CA_nps) +
+  geom_sf(data = counties) +
+  geom_sf(aes(fill = "National Park"), show.legend = FALSE) +
+  geom_sf(data = CA_NPS_Buffer, fill = NA, colour = "green", size = .5) +
+  theme_bw() +
+  theme(panel.grid.major = element_line(colour = 'transparent'))
+
+ggplot(CA_nps) +
+  geom_sf(data = counties) +
+  geom_sf(aes(fill = "National Park"), colour = "blue", fill = "darkgreen") +
+  theme_bw() +
+  theme(panel.grid.major = element_line(colour = 'transparent'))
+
+
+
+```
+
+##Task 5. LTER Lizards in the Northern Chihuahuan Desert
+
+```{r}
+
+lizards <- read_csv("lter_lizard_pitfall.csv")
+lizards[lizards =="."]<-NA
+
+#(1) For all lizards trapped at site ‘CALI’, do weights of male and female adult lizards differ significantly?
+
+View(lizards)
+
+m_cali <- lizards %>% 
+  select(site, sex, weight) %>% 
+  filter(site == "CALI", sex == "M")
+
+mw <- m_cali$weight
+
+f_cali <- lizards %>% 
+  select(site, sex, weight) %>% 
+  filter(site == "CALI", sex == "F")
+
+fw <- f_cali$weight
+
+mw <- as.numeric(mw)
+fw <- as.numeric(fw)
+
+mw
+fw
+
+lizard_t_test <- var.test(mw,fw)
+lizard_t_test
+
+t.test(mw, fw, var.equal = TRUE)
+
+#(2) For lizards trapped at the ‘CALI’ site, is there a significant difference in the proportion of adult male and female lizards with broken tails?
+
+
+cali_tail <- lizards %>% 
+  select(site, sex, tail) %>% 
+  filter(site =="CALI") %>%
+  filter(tail !=".") %>% 
+  filter(sex !="J") %>% 
+  filter(sex !=".")
+
+View(cali_tail)
+
+abs_lizard_tail <- table(cali_tail$sex, cali_tail$tail)
+
+abs_lizard_tail
+
+cali_lizard_tail <- matrix( c(18, 10, 59, 46), nrow=2, ncol=2, byrow=FALSE)
+
+rownames(cali_lizard_tail) <- c("F", "M")
+colnames(cali_lizard_tail) <- c("B","W")
+
+cali_lizard_tail
+
+
+
+prop.test(cali_lizard_tail)
+
+#DIFFERENT
+
+m_cali_tail <- lizards %>% 
+  select(site, sex, tail) %>% 
+  filter(site == "CALI", sex == "M") %>% 
+  filter(tail !=".") 
+
+mt <- m_cali_tail$tail
+
+f_cali_tail <- lizards %>% 
+  select(site, sex, tail) %>% 
+  filter(site == "CALI", sex == "F") %>% 
+  filter(tail !=".")
+
+ft <- f_cali_tail$tail
+ 
+View(ft) #n = 77, B = 18, W = 59 
+View(mt) #n = 56, B = 10, W = 46
+
+Broken <- c("18,")
+
+prop.test(prop_tail)
+
+```
+
+There is not a significant difference in the proportion of adult male (n = 56) and female (n = 77) lizards with broken tails ($\chi$^2^(1, n = 133) = 0.31, p = 0.579).

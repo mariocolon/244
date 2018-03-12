@@ -1,0 +1,183 @@
+---
+title: "Assignment_2"
+author: "Mario Colon"
+date: "February 24, 2018"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Load Packages
+
+```{r, results='hide', message=FALSE}
+
+library(tidyverse)
+library(Ecdat)
+library(plm)
+library(lmtest)
+library(quantreg)
+library(car)
+library(boot)
+library(nlstools)
+
+```
+
+
+
+#Task 3
+
+Fish stuff
+
+```{r, results='hide', message=FALSE}
+
+fish  <- read_csv("fish_catch.csv")
+
+fish_fun <- fish %>% 
+  select(Wild_Catch, Farmed_Fish, Total_Fish_Produced, Year1)
+
+fish_fun
+
+ggplot(fish_fun, aes(x = Year1, y = Wild_Catch)) +
+  geom_point()
+
+r_est <- lm(log(fish_fun$Wild_Catch[1:7]) ~ fish_fun$Year1[1:7])
+r_est
+
+#Ct = A / (1 + Be^-rt)
+
+#Estimate for K ~ 88
+#Estimate for C0 ~ 17.2
+#Estimate for B (K-C0)/C0 = 4.2
+
+#Estimate for A ~ 88
+#Estimate for B ~ 4.2
+#Estimate for r ~ .06407
+
+fish_fit <- nls(Wild_Catch ~ A / (1 + B*exp(-r*Year1)),
+                data = fish_fun,
+                start = list(A = 88, B = 4.2, r = .06407),
+                trace = TRUE
+                )
+
+
+A <- coef(fish_fit)[1]
+B <- coef(fish_fit)[2]
+r <- coef(fish_fit)[3]
+
+time_seq <- seq(0, 100, length = 300)
+time_seq
+
+
+fish_pred <- A/(1+B*exp(-r*time_seq))
+fish_pred
+
+pred_df <- data.frame(time_seq, fish_pred)
+pred_df
+
+ggplot(fish_fun, aes(x=Year1, y=Wild_Catch)) +
+  geom_point(color = "blue", size = 3) +
+  theme_bw() +
+  geom_line(data = pred_df, aes(x = time_seq, y = fish_pred), color = "red") +
+  xlab("Time (years)") +
+  ylab("Wild Catch (million tons)") +
+  ggtitle("Prediction of Wild Fish Catch Per Year")
+
+
+
+```
+
+**Figure 1. Prediction of Wild Fish Catch** Wild fish caught per year has increased logistically over time (Time adjusted; 1950 = 0). Despite more fish caught, the rate of capture has decreased over time, with a carrying capacity of 100 million tons of wild fish caught per year possible in the near future. 
+
+*Final Equation: Wild Fish Catch = 88 / (1 + 4.2e^-.06407t)*
+
+
+#Task 4
+
+In the study, 22 of 36 surveyed UCSB community members (61%) identifying as genderqueer responded that they had personally experienced “exclusionary, offensive, hostile or intimidating conduct” (compared to 26% and 19% for those identifying as women and men, respectively).
+
+Create a vector reflecting the collected survey data, then find the bootstrapped 95% confidence interval for the proportion of genderqueer individuals experiencing exclusionary conduct based on the 2014 UCSB survey data.
+
+```{r}
+
+#n=35
+#nq = 22 = 61%
+
+n=36
+exclusion <- sample(1, n, TRUE)
+exclusion[sample(1:36, .39 * n, FALSE)] <- 0
+table(exclusion)
+
+mean_exclusion <- function(x,i) {mean (x[i])}
+
+bootex_10000 <- boot(exclusion, mean_exclusion, R = 10000)
+hist(bootex_10000$t)
+
+bootex_graph <- data.frame(bootex_10000$t)
+
+ggplot(bootex_graph, aes(bootex_10000$t)) +
+  geom_histogram(binwidth = .03, fill = "darkgreen", colour = "black") +
+  xlab("Proportion") +
+  ylab ("Frequency") +
+  ggtitle ("Genderqueer Individuals Experiencing Hostility") +
+  theme_bw() 
+
+ex_ci <- boot.ci(bootex_10000, conf = .95, type = "perc")
+ex_ci 
+
+```
+**Figure 2. Genderqueer individuals experiencing hostility** Results of bootstraped data (CI = 95%) from survey exploring the proportions of individuals who identify as genderqueer (61%) who experienced "exclusionary, offensive, hostile or intimidating conduct" (n = 36) at UCSB. Source: 2014 UCSB Campus Climate Project Final Report (prepared by Rankin & Associates Consulting
+
+#Task 5
+
+###[d]
+
+```{r load, results='hide', message=FALSE}
+
+library(tidyverse)
+
+```
+###[e]
+
+```{r, results='hide', message=FALSE}
+
+ca_pest <- read_csv("ca_pest.csv")
+ca_pop <- read_csv("ca_pop.csv")
+
+```
+
+###[f - i]
+
+```{r}
+
+ca_merge <- full_join(ca_pest, ca_pop) %>% 
+  mutate(PesticidePounds_SqMile = PestPounds/CountyArea) %>% 
+  mutate(Population1 = Population/1000) %>% 
+  mutate(MedFamilyIncome1 = MedFamilyIncome/1000) %>% 
+  arrange(desc(PesticidePounds_SqMile)) %>% 
+  select(County, PesticidePounds_SqMile, Population1, MedFamilyIncome1)
+
+ca_merge
+
+```
+
+
+##[j]
+```{r, results='hide', message=FALSE}
+
+ggplot(ca_merge, aes(x = MedFamilyIncome1, y = PesticidePounds_SqMile, size = Population1)) +
+        geom_point(colour = "purple", alpha = .8) +
+  labs(size = "Population Size \n(thousands)") +
+  ylab("Pesticide Load (1000 lbs/square miles)") +
+  xlab("Annual Medium Family Income (thousands)") +
+  ggtitle("Pesticide Concentration by County") +
+  annotate("text", x = 68, y = 8700, label = "San Joaquin", size = 4) +
+  geom_smooth(method = lm, se = FALSE, show.legend = FALSE) +
+  theme_bw()
+
+```
+
+**Figure 3. Pesticide Concentration by County** Pesticide concentrations per county decreases as medium famiy income increase. Outlier of San Joaquin County exists, witha  pesticide use of 8,645,000 lbs/square mile a medium family income of $59,600 per year Source: Pesticide data: 2014 CA pesticide application (by county) from the California Department of Pesticide Regulation & California population & income data: U.S. Census Bureau. American Community Survey, 2010- 2014 American Community Survey 5-Year Estimates

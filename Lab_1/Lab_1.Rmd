@@ -1,0 +1,84 @@
+---
+title: "Lab 1"
+author: "Mario Colon"
+date: "1_18_18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Lab Objectives 
+
+- Markdown regresher 
+- Data wrangling refresher (tidyverse)
+- Pipe operator (%>%)
+- Recap data visualization with ggplot
+- Little baby intro to Shiny apps 
+
+#Part 1: Load Packages 
+
+```{r load_packages}
+
+library(tidyverse) #load tidyverse package
+library(readr)
+
+```
+
+##Part 2: Load Data 
+
+```{r data_upload}
+
+hp_aggression <- read_csv("/Users/brianthomas/Downloads/244/Lab_1/hp_aggression.csv")
+
+```
+
+##Part 3: Data wrangling and pipe operator practice 
+
+- select(): Select specified columns from a df
+- filter(): Select rows by setting conditions to match
+- mutate(): Adds columns based on calculators for existing
+- arrange(): Sorting variables 
+- group_by(): Assign grouping to variable entires, and can perform operations by group 
+
+```{r data_wrangling}
+
+hp_df1 <- hp_aggression %>% #pipe allows you to perform multiple functions (nested)
+  select(Name, aggressions, mentions) %>% 
+  mutate(rate = aggressions/mentions) %>% #acts of aggression divided by total mentions in books
+  group_by (Name) %>% #groups 'Names' and associated fields
+  mutate(average_rate = mean(rate)) %>% #average rate of agression BY 'Name'
+  ungroup() %>% #take out background information that groups 'Names' in this example
+  select(Name, average_rate)  %>% #ONLY select names and average rates of aggression
+  distinct(Name, average_rate)  %>% #restrict to ONLY 'Name' and 'Average Rate'
+  arrange(-average_rate) %>% 
+  head(10)
+
+```
+
+##Part 4. ggplot Refresher
+
+1. Tell R that you want to use ggplot
+2. Tell it what data you want to use (including what x/y are)
+3. Tell it what type of graphic you want to create
+
+```{r set_levels}
+
+hp_df1$Name <- factor(hp_df1$Name, levels = hp_df1$Name[order(hp_df1$average_rate)]) #set order of 'Names' to the order of 'average rate' as in highest to lowest rather than alphabetical order (default)
+
+```
+
+Make the graph!
+
+```{r hp_graph}
+
+ggplot(data = hp_df1, aes(x = Name, y =  average_rate)) +
+  geom_bar(stat = "identity", aes(fill = Name)) +
+  coord_flip() 
+
+```
+
+
+
+

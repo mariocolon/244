@@ -1,0 +1,119 @@
+---
+title: "Lab_4"
+author: "Mario Colon"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+1. Load Packages
+
+```{r load_packages, include = FALSE}
+
+library(tidyverse)
+library(Ecdat)
+library(plm)
+library(lmtest)
+library(quantreg)
+library(car)
+
+```
+
+Q: What is the effect of the average price of cigarette on purchases. 
+
+2. Simplify the dataset to only retain variables "state", "year", "packpc", "avgprs"
+
+```{r}
+
+cigs_panel <- Cigarette %>% 
+  select(state, year, packpc, avgprs)
+
+```
+
+3. Fixed effects model (within state)
+
+```{r}
+
+cigs_model <- plm(packpc ~ avgprs, 
+                  data = cigs_panel,
+                  index = c("state","year"),
+                  model = "within")
+
+cigs_model
+#summary(cigs_model) #...but we want to use the robus standard error in case of heteroscedasticity
+
+coeftest(cigs_model, vcov. = vcovHC(cigs_model, type = "HC1"))
+
+```
+
+Model coefficient say --> A negative relationship between average price and packs sold per capita
+
+N0 = There is no significant relationship betweeen average cigarette pack price and packs sold per capita
+
+4. Fixed Effects Model fo time and entity
+
+```{r}
+
+et_cigs_model <- plm(packpc ~ avgprs, 
+                     data=cigs_panel,
+                     index = c("state", "year"),
+                     model = "within",
+                     effect = "twoways") #effect = takes into account time-fixed effect variable entities into the model 
+et_cigs_model
+
+coeftest(et_cigs_model, vcov = vcovHC(et_cigs_model, type = "HC1"))
+
+```
+
+5. So which of these should I pick? Entity fixed effects or Entity/Time FE?
+
+```{r}
+
+pFtest(et_cigs_model, cigs_model) #Just as well of ONLY including entity fixed effect
+  
+
+#Test the hypothesis that there is no significant benefit to including the TIMED FIXED EFFECT (null). Reject NULL, which accepts the alternative hypothesis that there is a benefit to include the TIMED FIXED EFFECTS 
+```
+
+6. Least Squares Dummy Variable Regression (for the states with the top 5 populations as of 1995)
+
+```{r}
+
+cigs_panel2 <- Cigarette %>% 
+  select(state,year,packpc,avgprs) %>% 
+  filter(state == "CA" | state == "TX"| state == "NY" | state == "FL" |state == "PA")
+
+```
+
+Least Squares Dummy Variable Regression (state FE)
+
+```{r}
+
+lsdv_cigs <- lm(packpc ~ avgprs + state, data = cigs_panel2)
+
+lsdv_cigs
+
+```
+
+```{r}
+
+cigs_panel_plot <- cigs_panel2 %>% 
+  droplevels()
+
+levels(cigs_panel_plot$state)
+
+
+```
+
+```{r fig.height=6, fig.width=6}
+
+scatterplot(cigs_panel_plot$packpc ~ cigs_panel_plot$avgprs | cigs_panel_plot$state,
+            xlab = "Average Price",
+            ylab = "Packs per Capita",
+            smooth = FALSE,
+            legend.title = "State")
+
+```
+

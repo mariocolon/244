@@ -1,0 +1,56 @@
+---
+title: "Assignment2_Task5"
+author: "Mario Colon"
+date: "February 26, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+###d. Load the tidyverse
+
+```{r load, results='hide', message=FALSE}
+
+library(tidyverse)
+
+```
+###e. Load the two datasets
+
+```{r, results='hide', message=FALSE}
+
+ca_pest <- read_csv("ca_pest.csv")
+ca_pop <- read_csv("ca_pop.csv")
+ca_pest
+ca_pop
+
+```
+
+###f. Merge the two data frames by matching character strings in the County columns
+###g. Create a new column for pesticide applied (pounds) per square mile
+##h. Sort the new data frame from highest to lowest by the pesticide (pounds) per square mile column you created in (g)
+##i. Keep only the columns for: county name, pesticide applied per square mile, median family income and population
+
+```{r}
+
+ca_merge <- full_join(ca_pest, ca_pop) %>% 
+  mutate(PesticidePounds_SqMile = PestPounds/CountyArea) %>% 
+  arrange(desc(PesticidePounds_SqMile)) %>% 
+  select(County, PesticidePounds_SqMile, Population, MedFamilyIncome)
+
+```
+
+
+##j. Create a finalized bubble plot of median household income versus pesticide application per square mile, with the size of the ‘bubbles’ based on county population. Add a visual line of best fit (use geom_smooth, without an error ribbon – you do not need to actually find the model equation for this assignment). Add a label (county name) to the notable outlier on the graph. Include a figure caption.
+
+```{r}
+
+pest_income <- ggplot(ca_merge, aes(x = MedFamilyIncome, y = PesticidePounds_SqMile, size = Population)) +
+        geom_point() +
+  geom_smooth(se = FALSE, show.legend = FALSE)
+
+pest_income
+
+```
+

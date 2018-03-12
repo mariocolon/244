@@ -1,0 +1,74 @@
+---
+title: "244_Assignment_1_COLON"
+author: "Mario Colon"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Import Data 
+
+```{r packages_data}
+
+library(tidyverse)
+library(nnet)
+library(leaflet)
+library(readr)
+BluesStyle <- read_csv("Downloads/244/Assignment_1/BluesStyle.csv")
+View(BluesStyle)
+
+```
+
+#Task 3
+
+Explore Data
+
+```{r data_fun}
+
+BluesStyle$ThumbStyle <- as.factor(BluesStyle$ThumbStyle)
+BluesStyle$Region <- as.factor(BluesStyle$Region)
+
+BsMLR <- multinom(ThumbStyle ~ Region + BirthYear, data = BluesStyle)
+
+Frame <- data.frame(Region = rep(c("Texas", "Delta", "East"), each = 69), BirthYear = rep(seq(1873, 1941), 3))
+
+PredProb <- data.frame(Frame, predict(BsMLR, newdata = Frame, type = "probs"))
+
+prob_gather <- PredProb %>% 
+  gather(Preference, Probability, Alternating:Utility)
+
+ggplot(prob_gather, aes(x=BirthYear, y=Probability)) +
+  geom_line(aes(color=Preference)) +
+  facet_wrap(~Region) +
+  xlab("Birth Year") +
+  ggtitle("Blues Style by Birth Year and Region\n(1874 - 1940)") +
+  theme_bw()
+  
+
+```
+
+Figure 1. Probability of blues guitarists using the alternative-, utility- or dead-thumb style taking into account geography (Region) and Birth Year.
+
+Following a multinomial logistic regression, we see general trends in the probability of blues guitar thumb style differing along regional and birth year lines. In the Delta, a low probability of Alternating- style is persistent while a shift from Dead- to Utility-thumb style occurs as the year of guitarist birth moves from 1870 to 1941. The same shift from Dead- to Utility-thumb style occurs in the East, however the overall probability remains low (<40%) while the Alternative-thumb style remains at high probability persistence above 50% from 1870 to 1941. Lastly, in Texas a plummet of the lielihood guitarists will use th Dead-thumb style in 1870 from almost 95% to just above 50% in 1941 is seen, with a slow uptick of the Utility-thumb style from close to 5% to about 40% and the Alternative-style accounting for the last 10% in 1941.
+
+
+#Task 4
+
+```{r taco_review}
+
+Los_Agaves <- rep(c(1,2,3,4,5), times = c(30,22,30,109,326))
+Lillys_Tacos <- rep(c(1,2,3,4,5), times = c(6,13,19,83,199))
+
+hist(Los_Agaves)
+hist(Lillys_Tacos)
+
+taco_review <- wilcox.test(Los_Agaves,Lillys_Tacos)
+taco_review
+
+```
+
+Following the performance of a Mann-Whitney-U Test (W= 81768, p = 0.75), we retain the null hypothesis that the median Yelp reviews for Los Agaves (n = 517) and Lilly's Tacos (n = 320) do not significantly differ (i.e., there is not sufficient evidence to make us think that average Yelp Reviews for the two taco shops do differ significantly).
+
+

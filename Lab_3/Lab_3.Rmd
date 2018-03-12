@@ -1,0 +1,152 @@
+---
+title: "Lab_3"
+output: html_document
+auhor: "Mario Colon"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Boostrapping Pengin Flipper Lengths
+
+a. Get packages
+
+```{r load_packages}
+
+library(tidyverse)
+library(boot)
+library(nlstools)
+```
+
+b. Import data and manipulate
+
+```{r import_data}
+
+penguins <- read_csv("~/Downloads/244/Lab_3/penguins.csv")
+
+flip <- penguins %>% 
+  filter(sex == "FEMALE") %>% 
+  select(flipper_length) 
+
+flip_v <- flip$flipper_length
+
+```
+
+c. Create a function to calculate the means of the bootstrap samples
+
+```{r bootstrap}
+
+mean_fun <- function(x,i) {mean (x[i])}
+
+```
+
+d. Bootstrap flip_v
+
+```{r bootstrap_1}
+
+boot_10000 <- boot(flip_v, mean_fun, R = 10000)
+#boot_10000$t
+hist(boot_10000$t)
+
+
+
+```
+
+e. Find the confidence interval based on the sampling distribution using function boot.ci()
+
+```{r sample_dist}
+
+penguin_ci <- boot.ci(boot_10000, conf = .95, type = "perc")
+penguin_ci 
+
+
+```
+
+##Cell Growth
+
+a. Read Data
+
+```{r cell_data}
+
+CellGrowth <- read_csv("~/Downloads/244/Lab_3/CellGrowth.csv")
+
+```
+
+b. look at it
+
+```{r exploration}
+
+ggplot(CellGrowth, aes(x = Time, y = CellCount)) +
+  geom_point()
+
+
+
+```
+
+Ct = A / (1 + Be^-rt)
+
+Estimate for K ~ 3700
+Estimate for C0 ~ 2000
+Estimate for B ~ .85
+
+
+Create a linear model between the natural log of CellCount and Time for the first 5 observations (these look like they might follow exponential gorwth). The slope of that line is an estimate for the growth rate constant
+
+```{r lm}
+
+r_est <- lm(log(CellGrowth$CellCount[1:5]) ~ CellGrowth$Time[1:5])
+r_est
+#r starting estimate = 0.1035
+```
+
+Estimate for A ~ 3700
+Estimate for B ~ .85
+Estimate for r ~ 0.1035
+
+NLS for estimating parameter values for logistic growth, starting with our estimate for A, B, and r
+
+C = A / (1 + Be^-rt)
+
+```{r estimates}
+
+cell_fit <- nls(CellCount ~ A / (1 + B*exp(-r*Time)),
+                data = CellGrowth,
+                start = list(A = 3700, B = 0.85, r = 0.1035),
+                trace = TRUE
+                )
+
+```
+
+```{r more_fun}
+
+A <- coef(cell_fit)[1]
+B <- coef(cell_fit)[2]
+r <- coef(cell_fit)[3]
+```
+
+Create a time sequence (from 0 to 20 hours, and I want there to be 100). Then I'm going to plug that into my model to find the predicted cell population size
+
+```{r}
+
+time_seq <- seq(0, 20, length = 100)
+time_seq
+cell_pred <- A/(1+B*exp(-r*time_seq))
+cell_pred
+
+pred_df <- data.frame(time_seq, cell_pred)
+pred_df
+
+```
+
+Create a graph of original data + predictive model line
+
+```{r}
+
+ggplot(CellGrowth, aes(x=Time, y=CellCount)) +
+  geom_point(color = "blue", size = 3) +
+  theme_bw() +
+  geom_line(data = pred_df, aes(x = time_seq, y = cell_pred))
+
+```
+
