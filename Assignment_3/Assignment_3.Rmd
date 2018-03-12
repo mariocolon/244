@@ -131,7 +131,7 @@ lizard_t_test
 
 t.test(mw, fw, var.equal = TRUE)
 
-#(2) For lizards trapped at the ‘CALI’ site, is there a significant difference in the proportion of adult male and female lizards with broken tails?
+   #(2) For lizards trapped at the ‘CALI’ site, is there a significant difference in the proportion of adult male and female lizards with broken tails?
 
 
 cali_tail <- lizards %>% 
