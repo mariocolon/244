@@ -107,7 +107,6 @@ lizards[lizards =="."]<-NA
 
 #(1) For all lizards trapped at site ‘CALI’, do weights of male and female adult lizards differ significantly?
 
-View(lizards)
 
 m_cali <- lizards %>% 
   select(site, sex, weight) %>% 
@@ -123,9 +122,6 @@ fw <- f_cali$weight
 
 mw <- as.numeric(mw)
 fw <- as.numeric(fw)
-
-mw
-fw
 
 lizard_t_test <- var.test(mw,fw)
 lizard_t_test
@@ -155,33 +151,15 @@ colnames(cali_lizard_tail) <- c("B","W")
 
 cali_lizard_tail
 
-
-
 prop.test(cali_lizard_tail)
 
-#DIFFERENT
-
-m_cali_tail <- lizards %>% 
-  select(site, sex, tail) %>% 
-  filter(site == "CALI", sex == "M") %>% 
-  filter(tail !=".") 
-
-mt <- m_cali_tail$tail
-
-f_cali_tail <- lizards %>% 
-  select(site, sex, tail) %>% 
-  filter(site == "CALI", sex == "F") %>% 
-  filter(tail !=".")
-
-ft <- f_cali_tail$tail
- 
-View(ft) #n = 77, B = 18, W = 59 
-View(mt) #n = 56, B = 10, W = 46
-
-Broken <- c("18,")
-
-prop.test(prop_tail)
 
 ```
+
+(1)
+
+Live-trapping of lizards (sampling-with-replacement) in the Northern Chihuahua Desert near White Sands, NM from 1989 to 1990 found that though mean weight for female lizards (n = 79) was 0.86 grams greater than males (n = 58), the result was not significant (t(130) = -0.7, p = 0.427).
+
+(2)
 
 There is not a significant difference in the proportion of adult male (n = 56) and female (n = 77) lizards with broken tails ($\chi$^2^(1, n = 133) = 0.31, p = 0.579).
