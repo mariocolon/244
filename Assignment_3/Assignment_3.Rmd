@@ -78,16 +78,6 @@ st_crs(counties) <- 4326 #standard reference for map projection (1984)
 st_transform(CA_nps, crs = 4326) #transform CA_nps to match counties 
 
 
-CA_NPS_Buffer <-CA_nps %>%
- st_buffer(.01)
-
-ggplot(CA_nps) +
-  geom_sf(data = counties) +
-  geom_sf(aes(fill = "National Park"), show.legend = FALSE) +
-  geom_sf(data = CA_NPS_Buffer, fill = NA, colour = "green", size = .5) +
-  theme_bw() +
-  theme(panel.grid.major = element_line(colour = 'transparent'))
-
 ggplot(CA_nps) +
   geom_sf(data = counties) +
   geom_sf(aes(fill = "National Park"), colour = "blue", fill = "darkgreen") +
