@@ -2,7 +2,9 @@
 title: "244_Assignment3_COLON"
 author: "Mario Colon"
 date: "March 2, 2018"
-output: html_document
+output:
+  word_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -82,7 +84,8 @@ ggplot(CA_nps) +
   geom_sf(data = counties) +
   geom_sf(aes(fill = "National Park"), colour = "blue", fill = "darkgreen") +
   theme_bw() +
-  theme(panel.grid.major = element_line(colour = 'transparent'))
+  theme(panel.grid.major = element_line(colour = 'transparent')) +
+  ggtitle("California National Parks")
 
 
 

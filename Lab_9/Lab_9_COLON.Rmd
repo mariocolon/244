@@ -1,0 +1,25 @@
+---
+title: "Lab_9_COLON"
+author: "Mario Colon"
+date: "March 15, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#1. Library 
+
+
+```{r}
+
+library(tidyverse)
+library(cluster)
+library(NbClust)
+library(factoextra)
+library(tidytext)
+library(wordcloud)
+
+```
+
